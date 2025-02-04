@@ -13,23 +13,30 @@ async function buildPage(template, content) {
 }
 
 async function build() {
+  const isDev = process.env.NODE_ENV === 'development';
+  const basePath = isDev ? '' : '/Static-Site';
+  
   // Create output directories
-  await fs.ensureDir('.');
-  await fs.ensureDir('blog');
+  await fs.ensureDir('docs');
+  await fs.ensureDir('docs/blog');
   
   // Copy static assets
-  await fs.copy('src/styles', 'styles');
-  await fs.copy('src/images', 'images');
+  await fs.copy('src/styles', 'docs/styles');
+  await fs.copy('src/images', 'docs/images');
   
   // Read template
-  const template = await fs.readFile('src/templates/main.html', 'utf-8');
+  const template = await fs.readFile('src/templates/main.html', 'utf-8')
+    .then(content => {
+      return content.replace(/href="\/Static-Site\//g, `href="${basePath}/`)
+                   .replace(/src="\/Static-Site\//g, `src="${basePath}/`);
+    });
   
-  // Handle index.html specially - read the content between <main> tags
+  // Handle index.html specially
   const indexContent = await fs.readFile('src/index.html', 'utf-8');
   const mainContentMatch = indexContent.match(/<main>([\s\S]*?)<\/main>/);
-  const mainContent = mainContentMatch ? mainContentMatch[1] : '<h1>Welcome to My Website</h1><p>This is the landing page.</p>';
-  const indexHtml = await buildPage(template, mainContent);
-  await fs.writeFile('index.html', indexHtml);
+  const mainContent = mainContentMatch ? mainContentMatch[1] : '<h1>Welcome</h1>';
+  const indexHtml = template.replace('{{content}}', mainContent);
+  await fs.writeFile('docs/index.html', indexHtml);
   
   // Build blog posts
   const blogDir = path.join('src', 'content', 'blog');

@@ -4,72 +4,75 @@ const { marked } = require('marked');
 const matter = require('gray-matter');
 
 const REPO_NAME = 'Static-Site'; // Update this to match your repository name
+const isDev = process.env.NODE_ENV === 'development';
+const OUTPUT_DIR = isDev ? 'public' : 'docs';  // Use 'public' for local dev, 'docs' for GitHub Pages
+const basePath = isDev ? '' : `/${REPO_NAME}`;
 
 async function buildPage(template, content) {
-  // Add base path to all URLs
-  const processedContent = content.replace(/(href|src)="\//g, `$1="/${REPO_NAME}/`);
-  return template.replace('{{content}}', processedContent)
-                .replace('{{title}}', 'Part-Time YouTuber Academy');
+  // Process content first
+  const processedContent = content.replace(/(href|src)="\//g, `$1="${basePath}/`);
+  
+  // Then process the template with the correct paths
+  return template
+    .replace('{{content}}', processedContent)
+    .replace('{{title}}', 'Part-Time YouTuber Academy')
+    .replace(/(href|src)="\//g, `$1="${basePath}/`);
 }
 
 async function build() {
-  const isDev = process.env.NODE_ENV === 'development';
-  const basePath = isDev ? '' : '/Static-Site';
-  
   // Create output directories
-  await fs.ensureDir('docs');
-  await fs.ensureDir('docs/blog');
+  await fs.ensureDir(OUTPUT_DIR);
+  await fs.ensureDir(`${OUTPUT_DIR}/blog`);
+  await fs.ensureDir(`${OUTPUT_DIR}/styles`);
+  await fs.ensureDir(`${OUTPUT_DIR}/images`);
   
   // Copy static assets
-  await fs.copy('src/styles', 'docs/styles');
-  await fs.copy('src/images', 'docs/images');
+  await fs.copy('src/styles', `${OUTPUT_DIR}/styles`);
+  await fs.copy('src/images', `${OUTPUT_DIR}/images`);
   
   // Read template
-  const template = await fs.readFile('src/templates/main.html', 'utf-8')
-    .then(content => {
-      return content.replace(/href="\/Static-Site\//g, `href="${basePath}/`)
-                   .replace(/src="\/Static-Site\//g, `src="${basePath}/`);
-    });
+  const template = await fs.readFile('src/templates/main.html', 'utf-8');
   
   // Handle index.html specially
   const indexContent = await fs.readFile('src/index.html', 'utf-8');
   const mainContentMatch = indexContent.match(/<main>([\s\S]*?)<\/main>/);
   const mainContent = mainContentMatch ? mainContentMatch[1] : '<h1>Welcome</h1>';
-  const indexHtml = template.replace('{{content}}', mainContent);
-  await fs.writeFile('docs/index.html', indexHtml);
+  const indexHtml = await buildPage(template, mainContent);
+  await fs.writeFile(`${OUTPUT_DIR}/index.html`, indexHtml);
   
   // Build blog posts
   const blogDir = path.join('src', 'content', 'blog');
   const blogFiles = await fs.readdir(blogDir);
   
-  // Build blog index page
-  const blogIndexContent = `
-    <h1>Blog Posts</h1>
-    <ul>
-      ${blogFiles.map(file => {
-        const content = fs.readFileSync(path.join(blogDir, file), 'utf-8');
-        const { data } = matter(content);
-        const postName = file.replace('.md', '');
-        return `<li>
-          <a href="/blog/${postName}.html">${data.title || postName}</a>
-          ${data.date ? `<small>(${data.date})</small>` : ''}
-        </li>`;
-      }).join('\n')}
-    </ul>
-  `;
-  
-  const blogIndexHtml = await buildPage(template, blogIndexContent);
-  await fs.writeFile('blog/index.html', blogIndexHtml);
-  
+  // Process each blog post
   for (const file of blogFiles) {
     const content = await fs.readFile(path.join(blogDir, file), 'utf-8');
     const { data, content: markdownContent } = matter(content);
     const htmlContent = marked(markdownContent);
     
     const blogPost = await buildPage(template, htmlContent);
-    const outFile = path.join('blog', file.replace('.md', '.html'));
+    const outFile = path.join(OUTPUT_DIR, 'blog', file.replace('.md', '.html'));
     await fs.writeFile(outFile, blogPost);
   }
+  
+  // Build blog index
+  const blogIndexContent = `
+    <h1>Blog Posts</h1>
+    <ul class="blog-list">
+      ${blogFiles.map(file => {
+        const content = fs.readFileSync(path.join(blogDir, file), 'utf-8');
+        const { data } = matter(content);
+        const postName = file.replace('.md', '');
+        return `<li>
+          <a href="/blog/${postName}.html">${data.title || postName}</a>
+          ${data.date ? `<small>(${new Date(data.date).toLocaleDateString()})</small>` : ''}
+        </li>`;
+      }).join('\n')}
+    </ul>
+  `;
+  
+  const blogIndexHtml = await buildPage(template, blogIndexContent);
+  await fs.writeFile(`${OUTPUT_DIR}/blog/index.html`, blogIndexHtml);
   
   // Build pages
   const pagesDir = path.join('src', 'content', 'pages');
@@ -81,7 +84,7 @@ async function build() {
     const htmlContent = marked(markdownContent);
     
     const page = await buildPage(template, htmlContent);
-    const outFile = path.join('.', file.replace('.md', '.html'));
+    const outFile = path.join(OUTPUT_DIR, file.replace('.md', '.html'));
     await fs.writeFile(outFile, page);
   }
 }

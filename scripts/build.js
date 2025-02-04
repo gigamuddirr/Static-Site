@@ -3,9 +3,9 @@ const path = require('path');
 const { marked } = require('marked');
 const matter = require('gray-matter');
 
-const REPO_NAME = 'Static-Site'; // Update this to match your repository name
+const REPO_NAME = 'Static-Site'; // Make sure this matches your GitHub repository name exactly
 const isDev = process.env.NODE_ENV === 'development';
-const OUTPUT_DIR = isDev ? 'public' : 'docs';  // Use 'public' for local dev, 'docs' for GitHub Pages
+const OUTPUT_DIR = isDev ? 'public' : 'docs';
 const basePath = isDev ? '' : `/${REPO_NAME}`;
 
 async function buildPage(template, content) {
@@ -44,17 +44,6 @@ async function build() {
   const blogDir = path.join('src', 'content', 'blog');
   const blogFiles = await fs.readdir(blogDir);
   
-  // Process each blog post
-  for (const file of blogFiles) {
-    const content = await fs.readFile(path.join(blogDir, file), 'utf-8');
-    const { data, content: markdownContent } = matter(content);
-    const htmlContent = marked(markdownContent);
-    
-    const blogPost = await buildPage(template, htmlContent);
-    const outFile = path.join(OUTPUT_DIR, 'blog', file.replace('.md', '.html'));
-    await fs.writeFile(outFile, blogPost);
-  }
-  
   // Build blog index
   const blogIndexContent = `
     <h1>Blog Posts</h1>
@@ -64,7 +53,7 @@ async function build() {
         const { data } = matter(content);
         const postName = file.replace('.md', '');
         return `<li>
-          <a href="/blog/${postName}.html">${data.title || postName}</a>
+          <a href="${basePath}/blog/${postName}.html">${data.title || postName}</a>
           ${data.date ? `<small>(${new Date(data.date).toLocaleDateString()})</small>` : ''}
         </li>`;
       }).join('\n')}
@@ -73,6 +62,17 @@ async function build() {
   
   const blogIndexHtml = await buildPage(template, blogIndexContent);
   await fs.writeFile(`${OUTPUT_DIR}/blog/index.html`, blogIndexHtml);
+  
+  // Process blog posts
+  for (const file of blogFiles) {
+    const content = await fs.readFile(path.join(blogDir, file), 'utf-8');
+    const { data, content: markdownContent } = matter(content);
+    const htmlContent = marked(markdownContent);
+    
+    const blogPost = await buildPage(template, htmlContent);
+    const outFile = path.join(OUTPUT_DIR, 'blog', file.replace('.md', '.html'));
+    await fs.writeFile(outFile, blogPost);
+  }
   
   // Build pages
   const pagesDir = path.join('src', 'content', 'pages');

@@ -1,11 +1,11 @@
 const fs = require('fs-extra');
 const path = require('path');
-const marked = require('marked');
+const { marked } = require('marked');
 const matter = require('gray-matter');
 
 async function buildPage(template, content) {
   return template.replace('{{content}}', content)
-                .replace('{{title}}', 'My Website'); // You can make this dynamic later
+                .replace('{{title}}', 'Part-Time YouTuber Academy');
 }
 
 async function build() {
@@ -15,21 +15,40 @@ async function build() {
   
   // Copy static assets
   await fs.copy('src/styles', 'public/styles');
+  await fs.copy('src/images', 'public/images');
   
   // Read template
   const template = await fs.readFile('src/templates/main.html', 'utf-8');
   
-  // Create index.html
-  const indexContent = `
-    <h1>Welcome to My Website</h1>
-    <p>This is the landing page.</p>
-  `;
-  const indexHtml = await buildPage(template, indexContent);
+  // Handle index.html specially - read the content between <main> tags
+  const indexContent = await fs.readFile('src/index.html', 'utf-8');
+  const mainContentMatch = indexContent.match(/<main>([\s\S]*?)<\/main>/);
+  const mainContent = mainContentMatch ? mainContentMatch[1] : '<h1>Welcome to My Website</h1><p>This is the landing page.</p>';
+  const indexHtml = await buildPage(template, mainContent);
   await fs.writeFile('public/index.html', indexHtml);
   
   // Build blog posts
   const blogDir = path.join('src', 'content', 'blog');
   const blogFiles = await fs.readdir(blogDir);
+  
+  // Build blog index page
+  const blogIndexContent = `
+    <h1>Blog Posts</h1>
+    <ul>
+      ${blogFiles.map(file => {
+        const content = fs.readFileSync(path.join(blogDir, file), 'utf-8');
+        const { data } = matter(content);
+        const postName = file.replace('.md', '');
+        return `<li>
+          <a href="/blog/${postName}.html">${data.title || postName}</a>
+          ${data.date ? `<small>(${data.date})</small>` : ''}
+        </li>`;
+      }).join('\n')}
+    </ul>
+  `;
+  
+  const blogIndexHtml = await buildPage(template, blogIndexContent);
+  await fs.writeFile('public/blog/index.html', blogIndexHtml);
   
   for (const file of blogFiles) {
     const content = await fs.readFile(path.join(blogDir, file), 'utf-8');

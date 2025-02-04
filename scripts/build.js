@@ -17,15 +17,32 @@ function formatDate(dateString) {
   });
 }
 
+function fixPaths(content) {
+  // Remove any number of consecutive basePath occurrences
+  const basePathPattern = basePath.replace('/', '\\/');
+  content = content.replace(new RegExp(`(${basePathPattern}\\/?)+`, 'g'), `${basePath}/`);
+  
+  // Remove base tag if it exists
+  content = content.replace(/<base[^>]*>/g, '');
+  
+  // Then fix absolute paths that should be relative to base
+  content = content.replace(/(?<=(href|src)=["'])\//g, `${basePath}/`);
+  
+  // Clean up any double slashes (except for http:// or https://)
+  content = content.replace(/([^:])\/+/g, '$1/');
+  
+  return content;
+}
+
 async function buildPage(template, content, metadata = null) {
   // Process content first
   let processedContent = content;
   
   if (metadata) {
-    // Read ConvertKit partial
-    const convertKitPartial = await fs.readFile('src/templates/convertkit.html', 'utf-8');
+    // Read newsletter partial
+    const newsletterPartial = await fs.readFile('src/templates/partials/newsletter.html', 'utf-8');
     
-    // Add article header and ConvertKit form for blog posts
+    // Add article header and newsletter form for blog posts
     processedContent = `
       <article class="blog-post">
         <header class="post-header">
@@ -45,19 +62,24 @@ async function buildPage(template, content, metadata = null) {
           </a>
         </footer>
       </article>
-      ${convertKitPartial}
+      ${newsletterPartial}
     `;
   } else {
     processedContent = `<div class="blog-post">${content}</div>`;
   }
   
-  processedContent = processedContent.replace(/(href|src)="\//g, `$1="${basePath}/`);
+  // Fix paths in the content
+  processedContent = fixPaths(processedContent);
   
-  // Then process the template with the correct paths
-  return template
+  // Process the template with the correct paths
+  let finalHtml = template
     .replace('{{content}}', processedContent)
-    .replace('{{title}}', metadata?.title || 'Part-Time YouTuber Academy')
-    .replace(/(href|src)="\//g, `$1="${basePath}/`);
+    .replace('{{title}}', metadata?.title || 'Part-Time YouTuber Academy');
+  
+  // Fix paths in the final HTML
+  finalHtml = fixPaths(finalHtml);
+  
+  return finalHtml;
 }
 
 async function build() {
@@ -94,8 +116,9 @@ async function build() {
           const content = fs.readFileSync(path.join(blogDir, file), 'utf-8');
           const { data } = matter(content);
           const postName = file.replace('.md', '');
+          // Use a simple relative path that will be processed by fixPaths
           return `<li>
-            <a href="${basePath}/blog/${postName}.html">${data.title || postName}</a>
+            <a href="blog/${postName}.html">${data.title || postName}</a>
             <small>${formatDate(data.date)}</small>
           </li>`;
         }).join('\n')}

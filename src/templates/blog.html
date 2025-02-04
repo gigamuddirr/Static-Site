@@ -1,1 +1,36 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - Part-Time YouTuber Academy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/Static-Site/styles/main.css">
+</head>
+<body>
+    <nav>
+        <a href="/Static-Site/" class="logo">
+            <img src="/Static-Site/images/logo.png" alt="Part-Time YouTuber Academy" height="40">
+        </a>
+        <div class="nav-links">
+            <a href="/Static-Site/">Home</a>
+            <a href="/Static-Site/about">About</a>
+            <a href="/Static-Site/blog">Blog</a>
+        </div>
+    </nav>
+    <main class="blog-post">
+        <article>
+            <header>
+                <h1>{{title}}</h1>
+                <time>{{date}}</time>
+            </header>
+            {{content}}
+        </article>
+    </main>
+    <footer>
+        <p>© 2024 Your Name</p>
+    </footer>
+</body>
+</html> 

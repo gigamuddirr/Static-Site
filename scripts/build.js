@@ -8,14 +8,55 @@ const isDev = process.env.NODE_ENV === 'development';
 const OUTPUT_DIR = isDev ? 'public' : 'docs';
 const basePath = isDev ? '' : `/${REPO_NAME}`;
 
-async function buildPage(template, content) {
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+async function buildPage(template, content, metadata = null) {
   // Process content first
-  const processedContent = content.replace(/(href|src)="\//g, `$1="${basePath}/`);
+  let processedContent = content;
+  
+  if (metadata) {
+    // Read ConvertKit partial
+    const convertKitPartial = await fs.readFile('src/templates/convertkit.html', 'utf-8');
+    
+    // Add article header and ConvertKit form for blog posts
+    processedContent = `
+      <article class="blog-post">
+        <header class="post-header">
+          <div class="post-meta">Published on ${formatDate(metadata.date)}</div>
+          <h1>${metadata.title}</h1>
+          ${metadata.author ? `
+            <div class="author-info">
+              By ${metadata.author}
+              ${metadata.bio ? `<br>${metadata.bio}` : ''}
+            </div>
+          ` : ''}
+        </header>
+        ${content}
+        <footer>
+          <a href="#" class="share-button">
+            Share this article
+          </a>
+        </footer>
+      </article>
+      ${convertKitPartial}
+    `;
+  } else {
+    processedContent = `<div class="blog-post">${content}</div>`;
+  }
+  
+  processedContent = processedContent.replace(/(href|src)="\//g, `$1="${basePath}/`);
   
   // Then process the template with the correct paths
   return template
     .replace('{{content}}', processedContent)
-    .replace('{{title}}', 'Part-Time YouTuber Academy')
+    .replace('{{title}}', metadata?.title || 'Part-Time YouTuber Academy')
     .replace(/(href|src)="\//g, `$1="${basePath}/`);
 }
 
@@ -46,18 +87,20 @@ async function build() {
   
   // Build blog index
   const blogIndexContent = `
-    <h1>Blog Posts</h1>
-    <ul class="blog-list">
-      ${blogFiles.map(file => {
-        const content = fs.readFileSync(path.join(blogDir, file), 'utf-8');
-        const { data } = matter(content);
-        const postName = file.replace('.md', '');
-        return `<li>
-          <a href="${basePath}/blog/${postName}.html">${data.title || postName}</a>
-          ${data.date ? `<small>(${new Date(data.date).toLocaleDateString()})</small>` : ''}
-        </li>`;
-      }).join('\n')}
-    </ul>
+    <div class="blog-post">
+      <h1>Blog Posts</h1>
+      <ul class="blog-list">
+        ${blogFiles.map(file => {
+          const content = fs.readFileSync(path.join(blogDir, file), 'utf-8');
+          const { data } = matter(content);
+          const postName = file.replace('.md', '');
+          return `<li>
+            <a href="${basePath}/blog/${postName}.html">${data.title || postName}</a>
+            <small>${formatDate(data.date)}</small>
+          </li>`;
+        }).join('\n')}
+      </ul>
+    </div>
   `;
   
   const blogIndexHtml = await buildPage(template, blogIndexContent);
@@ -69,7 +112,7 @@ async function build() {
     const { data, content: markdownContent } = matter(content);
     const htmlContent = marked(markdownContent);
     
-    const blogPost = await buildPage(template, htmlContent);
+    const blogPost = await buildPage(template, htmlContent, data);
     const outFile = path.join(OUTPUT_DIR, 'blog', file.replace('.md', '.html'));
     await fs.writeFile(outFile, blogPost);
   }

@@ -10,12 +10,12 @@ async function buildPage(template, content) {
 
 async function build() {
   // Create output directories
-  await fs.ensureDir('public');
-  await fs.ensureDir('public/blog');
+  await fs.ensureDir('.');
+  await fs.ensureDir('blog');
   
   // Copy static assets
-  await fs.copy('src/styles', 'public/styles');
-  await fs.copy('src/images', 'public/images');
+  await fs.copy('src/styles', 'styles');
+  await fs.copy('src/images', 'images');
   
   // Read template
   const template = await fs.readFile('src/templates/main.html', 'utf-8');
@@ -25,7 +25,7 @@ async function build() {
   const mainContentMatch = indexContent.match(/<main>([\s\S]*?)<\/main>/);
   const mainContent = mainContentMatch ? mainContentMatch[1] : '<h1>Welcome to My Website</h1><p>This is the landing page.</p>';
   const indexHtml = await buildPage(template, mainContent);
-  await fs.writeFile('public/index.html', indexHtml);
+  await fs.writeFile('index.html', indexHtml);
   
   // Build blog posts
   const blogDir = path.join('src', 'content', 'blog');
@@ -48,7 +48,7 @@ async function build() {
   `;
   
   const blogIndexHtml = await buildPage(template, blogIndexContent);
-  await fs.writeFile('public/blog/index.html', blogIndexHtml);
+  await fs.writeFile('blog/index.html', blogIndexHtml);
   
   for (const file of blogFiles) {
     const content = await fs.readFile(path.join(blogDir, file), 'utf-8');
@@ -56,7 +56,7 @@ async function build() {
     const htmlContent = marked(markdownContent);
     
     const blogPost = await buildPage(template, htmlContent);
-    const outFile = path.join('public', 'blog', file.replace('.md', '.html'));
+    const outFile = path.join('blog', file.replace('.md', '.html'));
     await fs.writeFile(outFile, blogPost);
   }
   
@@ -70,7 +70,7 @@ async function build() {
     const htmlContent = marked(markdownContent);
     
     const page = await buildPage(template, htmlContent);
-    const outFile = path.join('public', file.replace('.md', '.html'));
+    const outFile = path.join('.', file.replace('.md', '.html'));
     await fs.writeFile(outFile, page);
   }
 }

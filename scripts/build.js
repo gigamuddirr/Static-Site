@@ -18,18 +18,26 @@ function formatDate(dateString) {
 }
 
 function fixPaths(content) {
-  // Remove any number of consecutive basePath occurrences
-  const basePathPattern = basePath.replace('/', '\\/');
-  content = content.replace(new RegExp(`(${basePathPattern}\\/?)+`, 'g'), `${basePath}/`);
+  // First normalize all paths to use single slashes
+  content = content.replace(/([^:])\/+/g, '$1/');
   
   // Remove base tag if it exists
   content = content.replace(/<base[^>]*>/g, '');
   
-  // Then fix absolute paths that should be relative to base
-  content = content.replace(/(?<=(href|src)=["'])\//g, `${basePath}/`);
-  
-  // Clean up any double slashes (except for http:// or https://)
-  content = content.replace(/([^:])\/+/g, '$1/');
+  // Fix paths in href and src attributes
+  content = content.replace(/(href|src)=["']([^"']+)["']/g, (match, attr, path) => {
+    // Skip external URLs and anchors
+    if (path.startsWith('http') || path.startsWith('#')) {
+      return match;
+    }
+    
+    // Remove any existing basePath and normalize slashes
+    path = path.replace(new RegExp(basePath, 'g'), '');
+    path = path.replace(/^\/+/, '').replace(/\/+/g, '/');
+    
+    // Add basePath to the normalized path
+    return `${attr}="${basePath}/${path}"`;
+  });
   
   return content;
 }
@@ -116,9 +124,8 @@ async function build() {
           const content = fs.readFileSync(path.join(blogDir, file), 'utf-8');
           const { data } = matter(content);
           const postName = file.replace('.md', '');
-          // Use a simple relative path that will be processed by fixPaths
           return `<li>
-            <a href="${postName}.html">${data.title || postName}</a>
+            <a href="blog/${postName}.html">${data.title || postName}</a>
             <small>${formatDate(data.date)}</small>
           </li>`;
         }).join('\n')}

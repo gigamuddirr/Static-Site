@@ -118,7 +118,7 @@ async function build() {
           const postName = file.replace('.md', '');
           // Use a simple relative path that will be processed by fixPaths
           return `<li>
-            <a href="blog/${postName}.html">${data.title || postName}</a>
+            <a href="${postName}.html">${data.title || postName}</a>
             <small>${formatDate(data.date)}</small>
           </li>`;
         }).join('\n')}

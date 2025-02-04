@@ -3,8 +3,12 @@ const path = require('path');
 const { marked } = require('marked');
 const matter = require('gray-matter');
 
+const REPO_NAME = 'Static-Site'; // Update this to match your repository name
+
 async function buildPage(template, content) {
-  return template.replace('{{content}}', content)
+  // Add base path to all URLs
+  const processedContent = content.replace(/(href|src)="\//g, `$1="/${REPO_NAME}/`);
+  return template.replace('{{content}}', processedContent)
                 .replace('{{title}}', 'Part-Time YouTuber Academy');
 }
 

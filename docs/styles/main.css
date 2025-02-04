@@ -292,12 +292,12 @@ main {
     }
 }
 
-/* ConvertKit Signup Form */
+/* ConvertKit Form Styles */
 .convertkit-signup {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 2.5rem;
-    margin: 4rem 0;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 2rem;
+    margin: 2rem 0;
     text-align: center;
 }
 
@@ -306,70 +306,65 @@ main {
     margin: 0 auto;
 }
 
-.convertkit-signup h3 {
-    font-size: 1.8rem;
+.convertkit-signup h2 {
+    color: #333;
+    font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: #000;
 }
 
 .convertkit-signup p {
-    font-size: 1.1rem;
     color: #666;
+    font-size: 1rem;
     margin-bottom: 1.5rem;
 }
 
 .convertkit-signup .form-group {
-    display: flex;
-    gap: 0.5rem;
     margin-bottom: 1rem;
 }
 
-.convertkit-signup input[type="email"] {
-    flex: 1;
-    padding: 0.8rem 1rem;
+.convertkit-signup input {
+    width: 100%;
+    padding: 0.8rem;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 4px;
     font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s;
+    margin-bottom: 1rem;
 }
 
-.convertkit-signup input[type="email"]:focus {
-    border-color: #0066ff;
+.convertkit-signup input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
 }
 
 .convertkit-signup button {
-    background: #0066ff;
+    background-color: #007bff;
     color: white;
     border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 6px;
+    border-radius: 4px;
+    padding: 0.8rem 2rem;
     font-size: 1rem;
-    font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 .convertkit-signup button:hover {
-    background: #0052cc;
+    background-color: #0056b3;
 }
 
-.convertkit-signup small {
-    color: #666;
-    font-size: 0.9rem;
+.convertkit-signup .disclaimer {
+    color: #888;
+    font-size: 0.875rem;
+    margin-top: 1rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
     .convertkit-signup {
-        padding: 2rem 1.5rem;
-        margin: 3rem 0;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
     }
-
-    .convertkit-signup .form-group {
-        flex-direction: column;
-    }
-
-    .convertkit-signup button {
-        width: 100%;
+    
+    .convertkit-signup h2 {
+        font-size: 1.25rem;
     }
 } 
